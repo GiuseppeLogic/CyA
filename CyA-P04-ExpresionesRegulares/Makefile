@@ -1,29 +1,28 @@
 # Compilador a usar
 CXX = g++
 
-# Opciones de compilación (C++17, advertencias activadas, y modo depuración)
-CXXFLAGS = -Wall -Wextra -g -std=c++17
+# Opciones de compilación (C++17, AddressSanitizer, advertencias y depuración)
+CXXFLAGS = -Wall -Wextra -g -fsanitize=address -std=c++17
 
 # Nombre del ejecutable final
 TARGET = ExpresionesRegulares
 
-# Busca automáticamente todos los archivos .cc en la carpeta src
-# Ideal para modularizar estructuras dinámicas o clases en varios archivos
+# Busca automáticamente todos los archivos .cc en src
 SRC_DIR = src
 SRCS = $(wildcard $(SRC_DIR)/*.cc)
 
 # Reemplaza la extensión .cc por .o para generar los archivos objeto
 OBJS = $(SRCS:.cc=.o)
 
-# Regla principal (la que se ejecuta por defecto al escribir 'make')
+# Regla principal
 all: $(TARGET)
 
 # Cómo construir el ejecutable final
 $(TARGET): $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $(TARGET) $(OBJS)
 
-# Cómo compilar cada archivo fuente (.cpp) a código objeto (.o)
-%.o: %.cpp
+# Cómo compilar cada archivo fuente (.cc) a código objeto (.o)
+%.o: %.cc
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 # Regla para limpiar los archivos generados

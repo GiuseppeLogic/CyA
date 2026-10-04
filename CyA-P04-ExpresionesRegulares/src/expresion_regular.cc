@@ -27,23 +27,29 @@
  * @param num_linea Número de la línea correspondiente dentro del archivo original.
  */
 void ParseoHTML::ExtraerEstructura(const std::string& linea, int num_linea) {
-    std::regex estructura_ocurrencia(R"(<(/|!)?(html|DOCTYPE\s+html|head|body)>)");
-    std::smatch coincidencia;
+    std::regex estructura_ocurrencia(R"(<(/|!)?(html|DOCTYPE\s+html|head|body|title)[^>]*>)");
 
-    if (std::regex_search(linea, coincidencia, estructura_ocurrencia)) {
-        
-        std::string etiqueta_encontrada = coincidencia[2].str();
+    auto inicio{std::sregex_iterator(linea.begin(),linea.end(),estructura_ocurrencia)};
+    auto fin{std::sregex_iterator()};
 
-        if (etiqueta_encontrada == "DOCTYPE html") {
+    for (auto it{inicio}; it != fin; ++it){
+        std::smatch coincidencia{*it};
+
+        std::string simbolo{coincidencia[1].str()};
+        std::string etiqueta{coincidencia[2].str()};
+
+        for (auto& c : etiqueta){
+            c = toupper(c);
+        }
+
+        if (etiqueta.find("DOCTYPE") != std::string::npos){
             estructura_["DOCTYPE"] = "HTML5";
             linea_doctype_ = num_linea;
-        } 
-        else if (coincidencia[1].str() != "/") {
-            for (auto & c: etiqueta_encontrada) c = toupper(c);
-            
-            estructura_[etiqueta_encontrada] = "True";
+        }else if(simbolo != "/") {
+            estructura_[etiqueta] = "True";
         }
-    }
+
+     }
 }
 
 /**
@@ -197,6 +203,10 @@ void ParseoHTML::ParsearDocumento(const std::string& ruta_documento){
             ExtraerAtributos(linea,contador_linea);
             ExtraerEstructura(linea,contador_linea);
             ExtraerEtiquetas(linea,contador_linea);
+            ContarEtiquetas(linea);
+            ExtraerEnlaces(linea);
+            ExtraerTitulo(linea);
+            ExtraerContenido(linea,contador_linea);
         }
         ++contador_linea;
     }
@@ -219,7 +229,10 @@ std::ostream& operator<<(std::ostream& out, const ParseoHTML& html) {
     // 1. PROGRAMA
     out << "PROGRAM : " << html.programa_ << "\n\n";
 
-    // 2. DESCRIPCIÓN
+    // 2. TÍTULO
+    out << "TITLE : " << html.titulo_ << "\n\n";
+
+    // 3. DESCRIPCIÓN
     out << "DESCRIPTION :\n";
     if (!html.descripcion_.empty()) {
         out << html.descripcion_ << "\n";
@@ -228,11 +241,12 @@ std::ostream& operator<<(std::ostream& out, const ParseoHTML& html) {
     }
     out << "\n";
 
-    // 3. ESTRUCTURA BÁSICA
+    // 4. ESTRUCTURA BÁSICA
     out << "STRUCTURE :\n";
     if (html.estructura_.count("HTML")) out << "HTML : " << html.estructura_.at("HTML") << "\n";
     if (html.estructura_.count("HEAD")) out << "HEAD : " << html.estructura_.at("HEAD") << "\n";
     if (html.estructura_.count("BODY")) out << "BODY : " << html.estructura_.at("BODY") << "\n";
+    if (html.estructura_.count("TITLE")) out << "TITLE : " << html.estructura_.at("TITLE") << "\n";
     if (html.estructura_.count("DOCTYPE")) out << "DOCTYPE : " << html.estructura_.at("DOCTYPE") << "\n";
     out << "\n";
 
@@ -242,7 +256,7 @@ std::ostream& operator<<(std::ostream& out, const ParseoHTML& html) {
     }
     out << "\n";
 
-    // 5. ATRIBUTOS
+    // 6. ATRIBUTOS
     out << "ATTRIBUTES :\n";
     for (const auto& atributo : html.atributos_) {
         out << "[ Line " << atributo.linea << "] " << atributo.etiqueta << "\n";
@@ -252,7 +266,7 @@ std::ostream& operator<<(std::ostream& out, const ParseoHTML& html) {
         out << "\n";
     }
 
-    // 6. COMENTARIOS
+    // 7. COMENTARIOS
     out << "COMMENTS :\n";
     for (size_t i = 0; i < html.comentarios_.size(); ++i) {
         const auto& comentario = html.comentarios_[i];
@@ -267,7 +281,129 @@ std::ostream& operator<<(std::ostream& out, const ParseoHTML& html) {
         out << comentario.contenido << "\n\n";
     }
 
+    // 8. FRECUENCIA ETIQUETAS
+    out << "TAGS FREQUENCY :\n";
+    for (const auto& par : html.frecuencia_etiquetas_) {
+        out <<  par.first << ":" << " [" << par.second << "] " << "\n";
+    }
+    out << "\n";
+
+    // 9. ENLACES
+    out << "URL'S :\n";
+    for (const std::string& enlace : html.enlaces_) {
+        out << enlace << "\n";
+    }
+    out << "\n";
+
+    // 10. CONTENIDO ETIQUETAS
+    out << "CONTENT TAGS :\n";
+    for (const auto& contenido : html.contenido_etiquetas_) {
+        out << "[ Line " << contenido.linea << "] " << contenido.etiqueta << "\n";
+        out << contenido.contenido << "\n";
+        out << "\n";
+    }
+
     return out;
+}
+
+
+/**
+ * @brief Busca todas las etiquetas HTML de apertura en una línea y cuenta su frecuencia de aparición.
+ * 
+ * Utiliza una expresión regular para localizar etiquetas ignorando sus atributos. 
+ * Si la etiqueta se encuentra en la línea, se extrae su nombre (grupo de captura 1)
+ * y se incrementa su contador en el mapa de frecuencias. Al usar sregex_iterator, 
+ * es capaz de encontrar múltiples etiquetas presentes en una misma línea.
+ * 
+ * @param linea Cadena de texto correspondiente a una línea leída del archivo HTML.
+ */
+void ParseoHTML::ContarEtiquetas(const std::string& linea){
+    std::regex patron(R"(<([A-Za-z0-9]+)[^>]*>)");
+    
+    auto inicio{std::sregex_iterator(linea.begin(), linea.end(), patron)};
+    auto fin{std::sregex_iterator()};
+
+    for (auto it{inicio}; it != fin; ++it){
+        std::smatch coincidencia{*it};
+        std::string etiqueta{coincidencia[1].str()};
+
+        frecuencia_etiquetas_[etiqueta]++;
+    }
+}
+
+
+/**
+ * @brief Extrae el primer enlace (URL) presente en una línea de código HTML.
+ * 
+ * Utiliza una expresión regular para buscar el atributo "href=" dentro de la cadena.
+ * Si encuentra una coincidencia mediante std::regex_search, aísla el valor contenido 
+ * entre las comillas (el grupo de captura 1) y lo añade al final del vector interno
+ * de enlaces de la clase.
+ * 
+ * @param linea Referencia constante a la cadena de texto de la línea a analizar.
+ */
+void ParseoHTML::ExtraerEnlaces(const std::string& linea){
+    std::regex patron_enlace(R"-(href\s*=\s*"([^"]*)")-");
+    std::smatch coincidencia;
+
+    if (std::regex_search(linea,coincidencia,patron_enlace)){
+        std::string enlace{coincidencia[1].str()};
+        enlaces_.emplace_back(enlace);
+    }
+}
+
+/**
+ * @brief Extrae el texto contenido dentro de la etiqueta de título del documento HTML.
+ * 
+ * Utiliza una expresión regular insensible a mayúsculas y minúsculas para localizar 
+ * la etiqueta <title>, permitiendo la existencia de atributos en su apertura. 
+ * Mediante un grupo de captura perezoso, aísla el texto plano que se encuentra 
+ * entre la etiqueta de apertura y la de cierre, almacenándolo en el estado de la clase.
+ * 
+ * @param linea Referencia constante a la cadena de texto de la línea a analizar.
+ */
+void ParseoHTML::ExtraerTitulo(const std::string& linea){
+    std::regex patron(R"(<title[^>]*>(.*?)</title>)", std::regex_constants::icase);
+    std::smatch coincidencia;
+
+    if (std::regex_search(linea, coincidencia, patron)){
+        std::string titulo{coincidencia[1].str()};
+        titulo_ = titulo;
+    }
+}
+
+
+/**
+ * @brief Extrae el texto interno de todas las etiquetas HTML presentes en una línea.
+ * 
+ * Utiliza un iterador de expresiones regulares para localizar pares de etiquetas 
+ * de apertura y cierre correspondientes, tolerando atributos en la etiqueta de apertura.
+ * Emplea una retroreferencia (\1) para garantizar que la etiqueta de cierre coincida 
+ * exactamente con la de apertura. El texto extraído (aislado mediante captura perezosa) 
+ * se almacena junto con el nombre de la etiqueta y el número de línea.
+ * 
+ * @param linea Referencia constante a la cadena de texto de la línea a analizar.
+ * @param num_linea Número de la línea correspondiente dentro del archivo original.
+ */
+void ParseoHTML::ExtraerContenido(const std::string& linea, int num_linea) {
+    // \1 exige que el cierre coincida con el grupo 1 (el nombre de la etiqueta)
+    std::regex patron(R"(<([A-Za-z0-9]+)[^>]*>(.*?)</\1>)", std::regex_constants::icase);
+    
+    auto inicio = std::sregex_iterator(linea.begin(), linea.end(), patron);
+    auto fin = std::sregex_iterator();
+
+    for (auto it = inicio; it != fin; ++it) {
+        std::smatch coincidencia = *it;
+        
+        ContenidoEtiqueta contenido_et;
+        contenido_et.linea = num_linea;
+        contenido_et.etiqueta = coincidencia[1].str();
+        contenido_et.contenido = coincidencia[2].str();
+
+        if (!contenido_et.contenido.empty()) {
+            contenido_etiquetas_.emplace_back(contenido_et);
+        }
+    }
 }
 
 /**

@@ -1,5 +1,7 @@
 PROGRAM : docs/entrada.html
 
+TITLE : Computabilidad y Algoritmia
+
 DESCRIPTION :
 <!-- Pagina principal de la asignatura de Computabilidad y Algoritmia -->
 
@@ -7,6 +9,7 @@ STRUCTURE :
 HTML : True
 HEAD : True
 BODY : True
+TITLE : True
 DOCTYPE : HTML5
 
 TAGS :
@@ -78,4 +81,65 @@ COMMENTS :
     Esta seccion contiene los recursos recomendados.
     El contenido puede cambiar durante el curso.
     -->
+
+TAGS FREQUENCY :
+a: [2] 
+body: [1] 
+h1: [1] 
+h2: [2] 
+head: [1] 
+html: [1] 
+img: [2] 
+li: [5] 
+ol: [1] 
+p: [3] 
+title: [1] 
+ul: [1] 
+
+URL'S :
+https://campusvirtual.ull.es
+https://regex101.com
+
+CONTENT TAGS :
+[ Line 5] title
+Computabilidad y Algoritmia
+
+[ Line 8] h1
+Computabilidad y Algoritmia
+
+[ Line 10] p
+Bienvenidos a la asignatura.
+
+[ Line 12] a
+Campus Virtual
+
+[ Line 14] h2
+Practica 4
+
+[ Line 16] p
+En esta practica trabajaremos con expresiones regulares.
+
+[ Line 21] li
+Expresiones regulares
+
+[ Line 22] li
+Grupos de captura
+
+[ Line 25] h2
+Materiales
+
+[ Line 27] p
+Consulta los siguientes recursos.
+
+[ Line 29] a
+Regex101
+
+[ Line 34] li
+Teoria de expresiones regulares
+
+[ Line 35] li
+Ejercicios practicos
+
+[ Line 36] li
+Documentacion de C++
 
