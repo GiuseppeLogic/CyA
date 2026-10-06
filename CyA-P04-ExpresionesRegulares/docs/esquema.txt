@@ -51,39 +51,45 @@ TAGS :
 [ Line 36] li
 [ Line 36] /li
 [ Line 37] /ol
-[ Line 43] /body
-[ Line 44] /html
+[ Line 39] a
+[ Line 39] /a
+[ Line 46] /body
+[ Line 47] /html
 
 ATTRIBUTES :
-[ Line 12] a
+[Line 12] a
 href="https://campusvirtual.ull.es"
 class="enlace"
 
-[ Line 18] img
+[Line 18] img
 src="regex.png"
 alt="Expresiones regulares"
 width="400"
 
-[ Line 29] a
+[Line 29] a
 href="https://regex101.com"
 target="_blank"
 
-[ Line 31] img
+[Line 31] img
 src="logo.png"
 alt="Logo de la universidad"
 
+[Line 39] a
+href="https://x.com/ull"
+class="enlace"
+
 COMMENTS :
-[ Line 2] DESCRIPTION
+[Line 2] DESCRIPTION
 <!-- Pagina principal de la asignatura de Computabilidad y Algoritmia -->
 
-[ Line 39 - 42]
+[Line 42 - 45]
     <!--
     Esta seccion contiene los recursos recomendados.
     El contenido puede cambiar durante el curso.
     -->
 
 TAGS FREQUENCY :
-a: [2] 
+a: [3] 
 body: [1] 
 h1: [1] 
 h2: [2] 
@@ -96,50 +102,63 @@ p: [3]
 title: [1] 
 ul: [1] 
 
-URL'S :
-https://campusvirtual.ull.es
-https://regex101.com
+LINKS :
+[Line 12]
+URL : https://campusvirtual.ull.es
+TEXT : Campus Virtual
+
+[Line 29]
+URL : https://regex101.com
+TEXT : Regex101
+
+[Line 39]
+URL : https://x.com/ull
+TEXT : X de la ULL
+
 
 CONTENT TAGS :
-[ Line 5] title
+[Line 5] title
 Computabilidad y Algoritmia
 
-[ Line 8] h1
+[Line 8] h1
 Computabilidad y Algoritmia
 
-[ Line 10] p
+[Line 10] p
 Bienvenidos a la asignatura.
 
-[ Line 12] a
+[Line 12] a
 Campus Virtual
 
-[ Line 14] h2
+[Line 14] h2
 Practica 4
 
-[ Line 16] p
+[Line 16] p
 En esta practica trabajaremos con expresiones regulares.
 
-[ Line 21] li
+[Line 21] li
 Expresiones regulares
 
-[ Line 22] li
+[Line 22] li
 Grupos de captura
 
-[ Line 25] h2
+[Line 25] h2
 Materiales
 
-[ Line 27] p
+[Line 27] p
 Consulta los siguientes recursos.
 
-[ Line 29] a
+[Line 29] a
 Regex101
 
-[ Line 34] li
+[Line 34] li
 Teoria de expresiones regulares
 
-[ Line 35] li
+[Line 35] li
 Ejercicios practicos
 
-[ Line 36] li
+[Line 36] li
 Documentacion de C++
+
+[Line 39] a
+X de la ULL
 

@@ -204,7 +204,7 @@ void ParseoHTML::ParsearDocumento(const std::string& ruta_documento){
             ExtraerEstructura(linea,contador_linea);
             ExtraerEtiquetas(linea,contador_linea);
             ContarEtiquetas(linea);
-            ExtraerEnlaces(linea);
+            ExtraerEnlaces(linea,contador_linea);
             ExtraerTitulo(linea);
             ExtraerContenido(linea,contador_linea);
         }
@@ -259,7 +259,7 @@ std::ostream& operator<<(std::ostream& out, const ParseoHTML& html) {
     // 6. ATRIBUTOS
     out << "ATTRIBUTES :\n";
     for (const auto& atributo : html.atributos_) {
-        out << "[ Line " << atributo.linea << "] " << atributo.etiqueta << "\n";
+        out << "[Line " << atributo.linea << "] " << atributo.etiqueta << "\n";
         for (const auto& texto_atributo : atributo.atributos) {
             out << texto_atributo << "\n";
         }
@@ -272,11 +272,11 @@ std::ostream& operator<<(std::ostream& out, const ParseoHTML& html) {
         const auto& comentario = html.comentarios_[i];
         
         if (comentario.linea_comienzo == comentario.linea_final) {
-            out << "[ Line " << comentario.linea_comienzo << "]";
+            out << "[Line " << comentario.linea_comienzo << "]";
             if (i == 0 && html.linea_doctype_ != -1) out << " DESCRIPTION"; 
             out << "\n";
         } else {
-            out << "[ Line " << comentario.linea_comienzo << " - " << comentario.linea_final << "]\n";
+            out << "[Line " << comentario.linea_comienzo << " - " << comentario.linea_final << "]\n";
         }
         out << comentario.contenido << "\n\n";
     }
@@ -289,16 +289,19 @@ std::ostream& operator<<(std::ostream& out, const ParseoHTML& html) {
     out << "\n";
 
     // 9. ENLACES
-    out << "URL'S :\n";
-    for (const std::string& enlace : html.enlaces_) {
-        out << enlace << "\n";
+    out << "LINKS :\n";
+    for (const auto& enlace : html.enlaces_) {
+        out << "[Line " << enlace.linea << "]" << "\n";
+        out << "URL : " << enlace.href << "\n";
+        out << "TEXT : " << enlace.contenido << "\n";
+        out << "\n";
     }
     out << "\n";
 
     // 10. CONTENIDO ETIQUETAS
     out << "CONTENT TAGS :\n";
     for (const auto& contenido : html.contenido_etiquetas_) {
-        out << "[ Line " << contenido.linea << "] " << contenido.etiqueta << "\n";
+        out << "[Line " << contenido.linea << "] " << contenido.etiqueta << "\n";
         out << contenido.contenido << "\n";
         out << "\n";
     }
@@ -333,22 +336,31 @@ void ParseoHTML::ContarEtiquetas(const std::string& linea){
 
 
 /**
- * @brief Extrae el primer enlace (URL) presente en una línea de código HTML.
+ * @brief Extrae el primer enlace (URL) presente en una etiqueta <a> en el HTML.
  * 
- * Utiliza una expresión regular para buscar el atributo "href=" dentro de la cadena.
- * Si encuentra una coincidencia mediante std::regex_search, aísla el valor contenido 
- * entre las comillas (el grupo de captura 1) y lo añade al final del vector interno
- * de enlaces de la clase.
+ * Utiliza una expresión regular para buscar el atributo "href=" y su contenido de la 
+ * etiqueta dentro de la cadena. Se usa std::sregex_iterator si hay posibles etiquetas
+ * concatenadas en la misma linea.
  * 
  * @param linea Referencia constante a la cadena de texto de la línea a analizar.
  */
-void ParseoHTML::ExtraerEnlaces(const std::string& linea){
-    std::regex patron_enlace(R"-(href\s*=\s*"([^"]*)")-");
-    std::smatch coincidencia;
+void ParseoHTML::ExtraerEnlaces(const std::string& linea, int num_linea){
+    std::regex patron_enlace(R"-(<a\s*href\s*=\s*"([^"]*)"[^>]*>(.?*)</a>)-");
 
-    if (std::regex_search(linea,coincidencia,patron_enlace)){
-        std::string enlace{coincidencia[1].str()};
-        enlaces_.emplace_back(enlace);
+    auto inicio{std::sregex_iterator(linea.begin(),linea.end(),patron_enlace)};
+    auto fin{std::sregex_iterator()};
+
+    for (auto it{inicio}; it != fin; ++it){
+        std::smatch coincidencia = *it;
+
+        Enlace enlace;
+        enlace.linea = num_linea;
+        enlace.href = coincidencia[1].str();
+        enlace.contenido = coincidencia[2].str();
+
+        if (!enlace.contenido.empty()){
+            enlaces_.emplace_back(enlace);
+        }
     }
 }
 

@@ -44,6 +44,12 @@ struct ContenidoEtiqueta{
   std::string contenido;
 };
 
+struct Enlace{
+  int linea;
+  std::string href;
+  std::string contenido;
+};
+
 class ParseoHTML{
   public:
     ParseoHTML(){};
@@ -57,7 +63,7 @@ class ParseoHTML{
     void ExtraerAtributos(const std::string& linea, int num_linea);
     void ProcesarComentarios(const std::string& linea, int num_linea);
     void ContarEtiquetas(const std::string& linea);
-    void ExtraerEnlaces(const std::string& linea);
+    void ExtraerEnlaces(const std::string& linea,int num_linea);
     void ExtraerTitulo(const std::string& linea);
     void ExtraerContenido(const std::string& linea, int num_linea);
 
@@ -69,7 +75,7 @@ class ParseoHTML{
     std::vector<Atributo> atributos_;
     std::vector<Comentario> comentarios_;
     std::map<std::string,int> frecuencia_etiquetas_;
-    std::vector<std::string> enlaces_;
+    std::vector<Enlace> enlaces_;
     std::vector<ContenidoEtiqueta> contenido_etiquetas_;
 
     bool en_comentario_ = false;
