@@ -16,12 +16,18 @@
 #include "automata_finito.h"
 
 int main(int argc, char* argv[]) {
+    bool opcion_complementario{false};
+
     if (argc == 2 && std::string{argv[1]} == "--help") {
         MostrarAyuda();
         return 0;
     }
 
-    if (argc != 3) {
+    if (argc == 4 && std::string{argv[3]} == "-c"){
+        opcion_complementario = true;
+    }
+
+    if (argc != 3 && argc != 4) {
         MostrarUso();
         return 1;
     }
@@ -46,10 +52,17 @@ int main(int argc, char* argv[]) {
     Automata automata;
     inp_dfa >> automata;
 
-    if (automata.getter_invalido()) {
-        std::cerr << "ERROR: El autómata es inválido. Se finaliza la ejecución del programa.\n";
+    if (automata.getter_invalido() || ! automata.EsCompatible()) {
+        std::cerr << "ERROR: El autómata es inválido o no compatible. Se finaliza la ejecución del programa.\n";
         return 1;
     }
+
+    if (opcion_complementario){
+        automata.HacerComplementario();
+        std::cout << "Evaluando lenguaje complementario...\n";
+    }
+
+    std::cout << automata;
 
     std::string cadena;
     while (std::getline(inp_entrada, cadena)) {

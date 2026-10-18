@@ -17,6 +17,7 @@
 
 #include <iostream>
 #include <string>
+#include <vector>
 #include <map>
 #include <fstream>
 #include <set>
@@ -33,7 +34,14 @@ class Automata{
     Automata(){};
     void ComprobarCadena(const std::string& cadena) const;
     bool getter_invalido() const{return automata_invalido_;};
+    bool EsCompatible() const;
+    std::vector<int> EstadosAbsorcion() const;
+    std::vector<int> EstadosBucle() const;
+    void HacerComplementario();
+    std::vector<std::pair<int,int>> EsMinimo() const;
+    friend std::ostream& operator<<(std::ostream& out, const std::pair<int,int>& par_estados);
     friend std::ostream& operator<<(std::ostream& out, const Automata& automata);
+    friend std::ostream& operator<<(std::ostream& out, const std::set<std::string>& alfabeto);
     friend std::istream& operator>>(std::istream& inp, Automata& automata);
 
   private:
@@ -43,6 +51,8 @@ class Automata{
     std::set<int> estados_aceptacion_;
     std::map<std::pair<int,std::string>,int> funcion_transicion_;
     bool automata_invalido_{false};
+
+    bool EstadosEquivalentes(int estado_1, int estado_2) const;
 
 };
 
