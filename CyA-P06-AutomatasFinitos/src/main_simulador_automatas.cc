@@ -23,6 +23,42 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
+    if (argc == 4 && std::string{argv[3]} == "-x"){
+        std::string direccion_dfa_1{argv[1]};
+        std::string direccion_dfa_2{argv[2]};
+
+        std::ifstream inp_dfa_1(direccion_dfa_1);
+        if (!inp_dfa_1.is_open()) {
+            std::cerr << "ERROR: No se pudo abrir el fichero de especificación del primer DFA: " 
+                    << direccion_dfa_1 << "\n";
+            return 1;
+        }
+
+        std::ifstream inp_dfa_2(direccion_dfa_2);
+        if (!inp_dfa_2.is_open()) {
+            std::cerr << "ERROR: No se pudo abrir el fichero de especificación del segundo DFA: " 
+                    << direccion_dfa_2 << "\n";
+            return 1;
+        }
+
+        Automata automata_1,automata_2;
+        inp_dfa_1 >> automata_1;
+        inp_dfa_2 >> automata_2;
+
+        std::cout << automata_1 << automata_2;
+
+        if (automata_1 == automata_2){
+            std::cout << "=================================================================\n"
+                      << "    LOS DOS AUTOMATAS FINITOS DETERMINISTAS SON EQUIVALENTES        \n"
+                      << "=================================================================\n\n";
+        }else{
+            std::cout << "=================================================================\n"
+                      << "   LOS DOS AUTOMATAS FINITOS DETERMINISTAS NO SON EQUIVALENTES        \n"
+                      << "=================================================================\n\n";
+        }
+        return 0;
+    }
+
     if (argc == 4 && std::string{argv[3]} == "-c"){
         opcion_complementario = true;
     }
@@ -50,6 +86,7 @@ int main(int argc, char* argv[]) {
     }
 
     Automata automata;
+    Gramatica gramatica;
     inp_dfa >> automata;
 
     if (automata.getter_invalido() || ! automata.EsCompatible()) {
@@ -63,6 +100,16 @@ int main(int argc, char* argv[]) {
     }
 
     std::cout << automata;
+
+    if (!automata.EsMinimo().empty()){
+        automata.MinimizarDFA();
+        std::cout << "\n\nMinimizando el DFA...";
+        std::cout << automata;
+    }
+
+    
+    gramatica.ObtenerGramatica(automata);
+    std::cout << gramatica;
 
     std::string cadena;
     while (std::getline(inp_entrada, cadena)) {

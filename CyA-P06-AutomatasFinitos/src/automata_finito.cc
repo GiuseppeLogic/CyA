@@ -56,6 +56,33 @@ std::ostream& operator<<(std::ostream& out, const std::vector<int>& estados){
 
 
 /**
+ * @brief Sobrecarga del operador de igualdad (==) para comparar dos autómatas.
+ * 
+ * Dos autómatas finitos deterministas (DFA) se consideran matemáticamente 
+ * equivalentes si, una vez minimizados, comparten exactamente la misma estructura.
+ * La función realiza copias locales para minimizar sin alterar los objetos originales,
+ * comparando posteriormente todos sus componentes internos.
+ * 
+ * @param automata_1 Referencia constante al primer autómata a comparar.
+ * @param automata_2 Referencia constante al segundo autómata a comparar.
+ */
+bool operator==(const Automata& automata_1, const Automata& automata_2) {
+    Automata copia_1 = automata_1;
+    Automata copia_2 = automata_2;
+
+    copia_1.MinimizarDFA();
+    copia_2.MinimizarDFA();
+    
+    return (copia_1.cantidad_estados_ == copia_2.cantidad_estados_) &&
+           (copia_1.estado_arranque_ == copia_2.estado_arranque_) &&
+           (copia_1.alfabeto_ == copia_2.alfabeto_) &&
+           (copia_1.estados_aceptacion_ == copia_2.estados_aceptacion_) &&
+           (copia_1.funcion_transicion_ == copia_2.funcion_transicion_);
+}
+
+
+
+/**
  * @brief Sobrecarga del operador de inserción (<<) para imprimir un par de estados.
  * 
  * Formatea un par de enteros (std::pair<int, int>) simulando la notación de un par
@@ -409,42 +436,43 @@ void Automata::HacerComplementario() {
 
 
 /**
- * @brief Comprueba si dos estados dados del autómata son equivalentes a nivel directo.
+ * @brief Comprueba si dos estados dados son equivalentes a nivel directo o de auto-bucle.
  * 
- * Dos estados se consideran equivalentes si cumplen dos condiciones indispensables:
- * 1. Ambos comparten la misma naturaleza respecto a la aceptación (ambos son 
- *    estados finales o ambos son estados no finales).
- * 2. Para cada símbolo del alfabeto, sus transiciones apuntan exactamente 
- *    al mismo estado destino.
- * 
- * @param estado_1 Identificador del primer estado a comparar.
- * @param estado_2 Identificador del segundo estado a comparar.
- * @return true Si ambos estados son equivalentes.
- * @return false Si difieren en su condición de aceptación o en alguna transición.
+ * @param estado_1 Identificador del primer estado.
+ * @param estado_2 Identificador del segundo estado.
+ * @return true Si tienen el mismo comportamiento inmediato.
  */
-bool Automata::EstadosEquivalentes(int estado_1, int estado_2) const{
-    bool estado_1_aceptacion{estados_aceptacion_.count(estado_1) > 0};
-    bool estado_2_aceptacion{estados_aceptacion_.count(estado_2) > 0};
+bool Automata::EstadosEquivalentes(int estado_1, int estado_2) const {
+    bool estado_1_aceptacion = (estados_aceptacion_.count(estado_1) > 0);
+    bool estado_2_aceptacion = (estados_aceptacion_.count(estado_2) > 0);
     
-    if (estado_1_aceptacion !=  estado_2_aceptacion){
+    if (estado_1_aceptacion != estado_2_aceptacion){
         return false;
     }
 
     for (const std::string& simbolo : alfabeto_) {
-        auto trans_estado_1 = funcion_transicion_.find({estado_1, simbolo});
-        auto trans_estado_2 = funcion_transicion_.find({estado_2, simbolo});
+        auto trans_1 = funcion_transicion_.find({estado_1, simbolo});
+        auto trans_2 = funcion_transicion_.find({estado_2, simbolo});
 
-        int dest_estado_1 = (trans_estado_1 != funcion_transicion_.end()) ? trans_estado_1->second : -1;
-        int dest_estado_2 = (trans_estado_2 != funcion_transicion_.end()) ? trans_estado_2->second : -1;
+        int dest_1 = (trans_1 != funcion_transicion_.end()) ? trans_1->second : -1;
+        int dest_2 = (trans_2 != funcion_transicion_.end()) ? trans_2->second : -1;
 
-        if (dest_estado_1 != dest_estado_2) {
-            return false; 
+        if (dest_1 != dest_2) {
+            // EL PARCHE: Si van a destinos distintos, comprobamos si es porque 
+            // cada uno se está apuntando a sí mismo (auto-bucle trampa).
+            bool bucle_propio = (dest_1 == estado_1 && dest_2 == estado_2);
+            
+            // O si se apuntan el uno al otro (bucle cruzado)
+            bool bucle_cruzado = (dest_1 == estado_2 && dest_2 == estado_1);
+
+            if (!bucle_propio && !bucle_cruzado) {
+                return false; // Son distinguibles
+            }
         }
     }
 
     return true;
 }
-
 /**
  * @brief Encuentra todos los pares de estados equivalentes del autómata.
  * 
@@ -471,6 +499,189 @@ std::vector<std::pair<int,int>> Automata::EsMinimo() const{
 }
 
 /**
+ * @brief Minimiza el Autómata Finito Determinista (DFA) fusionando estados equivalentes.
+ * 
+ * El algoritmo utiliza el método EsMinimo() para encontrar todos los pares de 
+ * estados equivalentes. Luego, agrupa estos estados asignándoles un único estado 
+ * "representante". Finalmente, reconstruye la función de transición, el conjunto 
+ * de estados de aceptación y el estado de arranque eliminando los estados redundantes 
+ * y reasignando identificadores contiguos (0, 1, 2...) a los estados resultantes.
+ */
+void Automata::MinimizarDFA() {
+    // 1. Obtener los pares de estados equivalentes
+    std::vector<std::pair<int,int>> equivalentes = EsMinimo();
+
+    // Si el vector está vacío, el DFA ya es mínimo, no hay nada que hacer
+    if (equivalentes.empty()) {
+        return;
+    }
+
+    // 2. Crear un arreglo de "representantes" para cada estado
+    // Inicialmente, cada estado se representa a sí mismo
+    std::vector<int> representante(cantidad_estados_);
+    for (int i = 0; i < cantidad_estados_; ++i) {
+        representante[i] = i;
+    }
+
+    // Fusionar los estados equivalentes
+    for (const auto& par : equivalentes) {
+        int p = par.first;
+        int q = par.second;
+        
+        // Nos aseguramos de quedarnos con el identificador más pequeño como representante
+        if (p > q) std::swap(p, q);
+        
+        int rep_p = representante[p];
+        
+        // Todos los estados que estaban siendo representados por 'q'
+        // ahora pasan a ser representados por el representante de 'p'.
+        for (int i = 0; i < cantidad_estados_; ++i) {
+            if (representante[i] == q) {
+                representante[i] = rep_p;
+            }
+        }
+    }
+
+    // 3. Crear nuevos identificadores contiguos (0, 1, 2...) para los estados únicos
+    std::map<int, int> nuevo_id;
+    int id_actual = 0;
+    for (int i = 0; i < cantidad_estados_; ++i) {
+        if (representante[i] == i) { // Si el estado es un representante oficial
+            nuevo_id[i] = id_actual++;
+        }
+    }
+
+    // 4. Construir las nuevas estructuras del autómata minimizado
+    int nueva_cantidad_estados = id_actual;
+    int nuevo_estado_arranque = nuevo_id[representante[estado_arranque_]];
+    std::set<int> nuevos_estados_aceptacion;
+    std::map<std::pair<int, std::string>, int> nueva_funcion_transicion;
+
+    // Actualizar estados de aceptación
+    for (int estado_final : estados_aceptacion_) {
+        nuevos_estados_aceptacion.insert(nuevo_id[representante[estado_final]]);
+    }
+
+    // Actualizar función de transición
+    for (const auto& par_transicion : funcion_transicion_) {
+        int origen_original = par_transicion.first.first;
+        std::string simbolo = par_transicion.first.second;
+        int destino_original = par_transicion.second;
+
+        // Redirigir el origen y el destino hacia sus nuevos identificadores representativos
+        int nuevo_origen = nuevo_id[representante[origen_original]];
+        int nuevo_destino = nuevo_id[representante[destino_original]];
+
+        nueva_funcion_transicion[{nuevo_origen, simbolo}] = nuevo_destino;
+    }
+
+    // 5. Reemplazar los atributos del autómata con los minimizados
+    cantidad_estados_ = nueva_cantidad_estados;
+    estado_arranque_ = nuevo_estado_arranque;
+    estados_aceptacion_ = nuevos_estados_aceptacion;
+    funcion_transicion_ = nueva_funcion_transicion;
+}
+
+
+/**
+ * @brief Transforma el autómata finito determinado (DFA) en una gramática regular equivalente.
+ * 
+ * @param automata Referencia constante al objeto Automata que se va a convertir en gramática.
+ */
+void Gramatica::ObtenerGramatica(const Automata& automata) {
+    alfabeto_ = automata.getter_alfabeto();
+    simbolos_no_terminales.clear();
+    producciones_.clear();
+
+    int cantidad_estados = automata.getter_cantidad_estados();
+    int estado_arranque = automata.getter_estado_arranque();
+
+    std::vector<std::string> nombre_no_terminales(cantidad_estados);
+    std::string alfabeto_latino{"ABCDEFGHIJKLMNOPQRSTUVWXYZ"};
+    
+    int indice_letra = 0;
+    for (int i = 0; i < cantidad_estados; ++i) {
+        if (i == estado_arranque) {
+            nombre_no_terminales[i] = "S";
+        } else {
+            if (alfabeto_latino[indice_letra] == 'S') {
+                indice_letra++;
+            }
+            nombre_no_terminales[i] = std::string{alfabeto_latino[indice_letra++]};
+        }
+        simbolos_no_terminales.emplace_back(nombre_no_terminales[i]);
+    }
+
+    // Producciones { q -> a p | δ(q, a) = p }
+    for (const auto& par_transicion : automata.getter_funcion_transicion()) {
+        int estado_origen = par_transicion.first.first;
+        std::string simbolo = par_transicion.first.second;
+        int estado_destino = par_transicion.second;
+
+        std::string no_terminal_origen = nombre_no_terminales[estado_origen];
+        std::string no_terminal_destino = nombre_no_terminales[estado_destino];
+
+        producciones_.insert({{no_terminal_origen, simbolo}, no_terminal_destino});
+    }
+
+    // Producciones { q -> ε | q ∈ F }
+    for (int estado_final : automata.getter_estado_aceptacion()) {
+        std::string no_terminal_final = nombre_no_terminales[estado_final];
+        producciones_.insert({{no_terminal_final, "NA"}, "ε"});
+    }
+}
+
+
+/**
+ * @brief Sobrecarga del operador de inserción (<<) para imprimir la gramática.
+ * 
+ * Muestra las reglas de producción agrupadas por cada símbolo no terminal 
+ * separadas por '|' (ej. "S -> aS|bA"), coincidiendo con la notación formal[cite: 3].
+ * 
+ * @param out Flujo de salida (ej. std::cout).
+ * @param gramatica Objeto de tipo Gramatica a representar.
+ * @return std::ostream& Referencia al propio flujo de salida.
+ */
+std::ostream& operator<<(std::ostream& out, const Gramatica& gramatica) {
+    out << "\n";
+    out << "==========================================\n";
+    out << "           GRAMÁTICA EQUIVALENTE          \n";
+    out << "==========================================\n";
+
+    for (const std::string& no_terminal : gramatica.simbolos_no_terminales) {
+        std::vector<std::string> lados_derechos;
+
+        for (const auto& produccion : gramatica.producciones_) {
+            std::string origen = produccion.first.first;
+            std::string simbolo = produccion.first.second;
+            std::string destino = produccion.second;
+
+            if (origen == no_terminal) {
+                if (destino == "ε" || simbolo == "NA") {
+                    lados_derechos.push_back("ε");
+                } else {
+                    lados_derechos.push_back(simbolo + destino);
+                }
+            }
+        }
+
+        if (!lados_derechos.empty()) {
+            out << no_terminal << " -> ";
+            for (size_t i = 0; i < lados_derechos.size(); ++i) {
+                out << lados_derechos[i];
+                if (i < lados_derechos.size() - 1) {
+                    out << "|";
+                }
+            }
+            out << "\n";
+        }
+    }
+    out << "==========================================\n\n";
+
+    return out;
+}
+
+/**
  * @brief Muestra el modo correcto de ejecución del programa.
  * 
  * Imprime por pantalla la sintaxis necesaria para invocar el ejecutable 
@@ -486,16 +697,28 @@ void MostrarUso() {
  * @brief Muestra la ayuda detallada del programa.
  * 
  * Explica el propósito del simulador de DFA, los parámetros requeridos 
- * (fichero de especificación .dfa y fichero de cadenas .txt) y su significado.
+ * (fichero de especificación .dfa y fichero de cadenas .txt), los flags 
+ * opcionales y proporciona ejemplos prácticos de ejecución.
  */
 void MostrarAyuda() {
-    std::cout << "Simulador de Autómatas Finitos Deterministas (DFA).\n\n"
+    std::cout << "=================================================================\n"
+              << "       Simulador de Autómatas Finitos Deterministas (DFA)        \n"
+              << "=================================================================\n\n"
               << "USO:\n"
-              << "  ./Automata <input.dfa> <input.txt> [-c]\n\n"
+              << "  ./Automata <input.dfa> <input.txt> [-c]\n"
+              << "  ./Automata <automata_1.dfa> <automata_2.dfa> [-x]\n\n"
               << "PARÁMETROS:\n"
               << "  <input.dfa>  Fichero de texto con la especificación de un DFA.\n"
-              << "  <input.txt>  Fichero de texto con una serie de cadenas (una por línea) sobre el alfabeto del autómata a evaluar.\n"
-              << "  [-c]         Opción que simula el lenguaje complementario reconocido por el DFA.\n";
-
+              << "  <input.txt>  Fichero de texto con una serie de cadenas (una por línea) a evaluar.\n"
+              << "  [-c]         Opción que simula el lenguaje complementario reconocido por el DFA.\n"
+              << "  [-x]         Opción que compara si dos DFAs son equivalentes (requiere dos .dfa).\n\n"
+              << "EJEMPLOS DE EJECUCIÓN:\n"
+              << "  1. Simulación estándar:\n"
+              << "     ./Automata mi_automata.dfa mis_cadenas.txt\n\n"
+              << "  2. Simulación del lenguaje complementario:\n"
+              << "     ./Automata mi_automata.dfa mis_cadenas.txt -c\n\n"
+              << "  3. Comparar si dos DFAs reconocen el mismo lenguaje:\n"
+              << "     ./Automata automata_1.dfa automata_2.dfa -x\n"
+              << "=================================================================\n";
 }
 
