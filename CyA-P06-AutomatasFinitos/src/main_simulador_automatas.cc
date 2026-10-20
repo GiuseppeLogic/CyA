@@ -86,7 +86,6 @@ int main(int argc, char* argv[]) {
     }
 
     Automata automata;
-    Gramatica gramatica;
     inp_dfa >> automata;
 
     if (automata.getter_invalido() ) {
@@ -107,7 +106,7 @@ int main(int argc, char* argv[]) {
         std::cout << automata;
     }
 
-    
+    Gramatica gramatica;
     gramatica.ObtenerGramatica(automata);
     std::cout << gramatica;
 
