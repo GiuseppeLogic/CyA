@@ -89,7 +89,7 @@ int main(int argc, char* argv[]) {
     Gramatica gramatica;
     inp_dfa >> automata;
 
-    if (automata.getter_invalido() || ! automata.EsCompatible()) {
+    if (automata.getter_invalido() ) {
         std::cerr << "ERROR: El autómata es inválido o no compatible. Se finaliza la ejecución del programa.\n";
         return 1;
     }
@@ -123,6 +123,20 @@ int main(int argc, char* argv[]) {
         
         automata.ComprobarCadena(cadena);
     }
+
+
+    std::cout << "=============================\n"
+              << "        MODIFICACIÓN       \n"
+              << "=============================\n\n";
+    
+    std::cout << "Se muestran los estados de muerte del DFA: ";
+    std::vector<int> estados_absorcion{automata.EstadosAbsorcion()};
+    if (!estados_absorcion.empty()){
+        std::cout << estados_absorcion;
+    }else{
+        std::cout << "El DFA carece de estados de muerte.\n\n";
+    }
+    
 
     return 0;
 }

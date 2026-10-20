@@ -29,6 +29,11 @@ void MostrarUso();
 void MostrarAyuda();
 
 
+std::ostream& operator<<(std::ostream& out, const std::pair<int,int>& par_estados);
+std::ostream& operator<<(std::ostream& out, const std::vector<int>& estados);
+std::ostream& operator<<(std::ostream& out, const std::set<std::string>& alfabeto);
+
+
 class Automata{
   public:
     ~Automata(){};
@@ -49,9 +54,7 @@ class Automata{
     std::vector<std::pair<int,int>> EsMinimo() const;
     void MinimizarDFA();
 
-    friend std::ostream& operator<<(std::ostream& out, const std::pair<int,int>& par_estados);
     friend std::ostream& operator<<(std::ostream& out, const Automata& automata);
-    friend std::ostream& operator<<(std::ostream& out, const std::set<std::string>& alfabeto);
     friend std::istream& operator>>(std::istream& inp, Automata& automata);
     friend bool operator==( const Automata& automata_1, const Automata& automata_2);
     
