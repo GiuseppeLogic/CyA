@@ -14,6 +14,32 @@
 #include "gramatica_regular.h"
 
 /**
+ * @brief Sobrecarga del operador de igualdad (==) para comparar dos autómatas.
+ * 
+ * Dos autómatas finitos deterministas (DFA) se consideran matemáticamente 
+ * equivalentes si, una vez minimizados, comparten exactamente la misma estructura.
+ * La función realiza copias locales para minimizar sin alterar los objetos originales,
+ * comparando posteriormente todos sus componentes internos.
+ * 
+ * @param automata_1 Referencia constante al primer autómata a comparar.
+ * @param automata_2 Referencia constante al segundo autómata a comparar.
+ */
+bool operator==(const Automata& automata_1, const Automata& automata_2) {
+    Automata copia_1 = automata_1;
+    Automata copia_2 = automata_2;
+
+    copia_1.MinimizarDFA();
+    copia_2.MinimizarDFA();
+    
+    return (copia_1.cantidad_estados_ == copia_2.cantidad_estados_) &&
+           (copia_1.estado_arranque_ == copia_2.estado_arranque_) &&
+           (copia_1.alfabeto_ == copia_2.alfabeto_) &&
+           (copia_1.estados_aceptacion_ == copia_2.estados_aceptacion_) &&
+           (copia_1.funcion_transicion_ == copia_2.funcion_transicion_);
+}
+
+
+/**
  * @brief Sobrecarga del operador de extracción para la clase Automata.
  * 
  * Lee la especificación de un DFA desde un flujo de entrada asegurando que

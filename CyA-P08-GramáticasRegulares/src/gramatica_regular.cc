@@ -55,31 +55,6 @@ std::ostream& operator<<(std::ostream& out, const std::vector<int>& estados){
 }
 
 
-/**
- * @brief Sobrecarga del operador de igualdad (==) para comparar dos autómatas.
- * 
- * Dos autómatas finitos deterministas (DFA) se consideran matemáticamente 
- * equivalentes si, una vez minimizados, comparten exactamente la misma estructura.
- * La función realiza copias locales para minimizar sin alterar los objetos originales,
- * comparando posteriormente todos sus componentes internos.
- * 
- * @param automata_1 Referencia constante al primer autómata a comparar.
- * @param automata_2 Referencia constante al segundo autómata a comparar.
- */
-bool operator==(const Automata& automata_1, const Automata& automata_2) {
-    Automata copia_1 = automata_1;
-    Automata copia_2 = automata_2;
-
-    copia_1.MinimizarDFA();
-    copia_2.MinimizarDFA();
-    
-    return (copia_1.cantidad_estados_ == copia_2.cantidad_estados_) &&
-           (copia_1.estado_arranque_ == copia_2.estado_arranque_) &&
-           (copia_1.alfabeto_ == copia_2.alfabeto_) &&
-           (copia_1.estados_aceptacion_ == copia_2.estados_aceptacion_) &&
-           (copia_1.funcion_transicion_ == copia_2.funcion_transicion_);
-}
-
 
 
 /**
@@ -176,7 +151,12 @@ std::ofstream& operator<<(std::ofstream& out, const Gramatica& gramatica){
     
     out << gramatica.producciones_.size() << "\n"; 
     for (const auto& produccion : gramatica.producciones_){
-        out << produccion.first.first << " -> " << produccion.first.second << produccion.second << "\n";
+        if(gramatica.lineal_izquierda){
+             out << produccion.first.first << " -> " << produccion.second<< produccion.first.second  << "\n";
+        }else{
+            out << produccion.first.first << " -> " << produccion.first.second << produccion.second << "\n";
+        }
+       
     }
     
     return out;
@@ -216,3 +196,116 @@ void MostrarAyuda() {
               << "=================================================================\n";
 }
 
+
+/**
+ * @brief Extrae y formatea las producciones asociadas a un símbolo no terminal.
+ * 
+ * Busca todas las reglas de producción en las que el símbolo no terminal 
+ * indicado actúa como origen (parte izquierda). Agrupa los lados derechos 
+ * correspondientes y los formatea en una única cadena separada por el 
+ * símbolo '|'. Tiene en cuenta si la gramática está configurada como lineal 
+ * por la izquierda o por la derecha para ordenar correctamente los terminales 
+ * y no terminales en la salida.
+ * 
+ * @param simbolo_no_terminal Cadena de texto con el identificador del no terminal a buscar (ej. "A").
+ * @return std::string Cadena formateada con todas las producciones del símbolo (ej. "A -> aB | b | &"), 
+ *         o una cadena vacía si el símbolo no es válido o no pertenece a la gramática.
+ */
+std::string Gramatica::MostrarProdNoTerminal(const std::string& simbolo_no_terminal) const {
+    std::string producciones{""};
+    
+    if (simbolo_no_terminal.empty()) {
+        std::cout << "\nERROR: No se ha ingresado un símbolo no terminal." << "\n";
+        return producciones;
+    }
+    
+    bool existe_simbolo{false};
+    for (const std::string& simbolo : simbolos_no_terminales) {
+        if (simbolo_no_terminal == simbolo) {
+            existe_simbolo = true;
+        }
+    }   
+
+    if (!existe_simbolo) {
+        std::cout << "\nERROR: No existe el símbolo no terminal ingresado." << "\n";
+        return producciones;
+    }
+
+    std::vector<std::string> lados_derecho;
+    for (const auto& produccion : producciones_) {
+        std::string origen{produccion.first.first};
+        if (origen != simbolo_no_terminal) {
+            continue;
+        }
+
+        std::string simbolo{produccion.first.second};
+        std::string destino{produccion.second};
+        if (lineal_izquierda) {
+            lados_derecho.emplace_back(std::string{destino + simbolo});
+        } else {
+            lados_derecho.emplace_back(std::string{simbolo + destino});
+        }
+    }
+
+    producciones = simbolo_no_terminal + " -> ";
+    for (size_t i{0}; i != lados_derecho.size(); ++i) {
+        producciones += lados_derecho[i];
+        if (i < lados_derecho.size() - 1) {
+            producciones += " | ";
+        }
+    }
+
+    return producciones;
+}
+
+
+/**
+ * @brief Comprueba si una cadena pertenece al lenguaje generado por la gramática.
+ * 
+ * Simula el proceso de derivación iterando sobre los caracteres de la cadena.
+ * Si la gramática es lineal por la derecha, lee la cadena en su orden natural 
+ * (de izquierda a derecha). Si es lineal por la izquierda, procesa la cadena 
+ * en orden inverso (de derecha a izquierda).
+ * 
+ * @param cadena La cadena de texto (std::string) a evaluar.
+ * @return true Si la gramática genera la cadena y culmina en una producción vacía (&).
+ * @return false Si no hay reglas de producción para la cadena o no termina en aceptación.
+ */
+bool Gramatica::ComprobarCadena(const std::string& cadena) const {
+    if (lineal_izquierda == 0) {
+        std::string simbolo_no_terminal{"S"};
+        for (size_t i{0}; i != cadena.size(); ++i) {
+            auto produccion{producciones_.find({simbolo_no_terminal, std::string(1, cadena[i])})};
+
+            if (produccion != producciones_.end()) {
+                simbolo_no_terminal = produccion->second;
+            } else {
+                return false;
+            }
+        }
+        auto produccion_final{producciones_.find({simbolo_no_terminal, "&"})};
+
+        if (produccion_final == producciones_.end()) {
+            return false;
+        }
+    } else {
+        std::string simbolo_no_terminal{"S"};
+        
+        for (int i = static_cast<int>(cadena.size()) - 1; i >= 0; --i) {
+            auto produccion{producciones_.find({simbolo_no_terminal, std::string(1, cadena[i])})};
+
+            if (produccion != producciones_.end()) {
+                simbolo_no_terminal = produccion->second;
+            } else {
+                return false;
+            }
+        }
+        auto produccion_final{producciones_.find({simbolo_no_terminal, "&"})};
+
+        if (produccion_final == producciones_.end()) {
+            return false;
+        }
+    }
+
+    return true;
+}

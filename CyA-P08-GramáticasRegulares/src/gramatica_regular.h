@@ -36,6 +36,9 @@ class Gramatica{
      Gramatica(){};
      ~Gramatica(){};
 
+     std::string MostrarProdNoTerminal(const std::string& simbolo_no_terminal)  const;
+     bool ComprobarCadena(const std::string& cadena) const;
+     
      friend std::ostream& operator<<(std::ostream& out, const Gramatica& gramatica);
      friend std::ofstream& operator<<(std::ofstream& out, const Gramatica& gramatica);
      friend class Automata;
@@ -45,6 +48,7 @@ class Gramatica{
     std::vector<std::string> simbolos_no_terminales;
     std::map<std::pair<std::string,std::string>,std::string> producciones_;
     std::string simbolo_arranque_{"S"};
+    int lineal_izquierda{0};
 };
 
 class Automata{
