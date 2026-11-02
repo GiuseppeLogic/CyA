@@ -38,6 +38,11 @@ class Gramatica{
 
      std::string MostrarProdNoTerminal(const std::string& simbolo_no_terminal)  const;
      bool ComprobarCadena(const std::string& cadena) const;
+     bool MostrarProduccionesVacias() const;
+     void MostrarSimbolosInutiles() const;
+     void DerivacionCadena(const std::string& cadena) const;
+     bool EsLenguajeInfinito() const;
+     void EliminarSimbolosInutiles();
      
      friend std::ostream& operator<<(std::ostream& out, const Gramatica& gramatica);
      friend std::ofstream& operator<<(std::ofstream& out, const Gramatica& gramatica);
@@ -70,6 +75,7 @@ class Automata{
     std::vector<std::pair<int,int>> EsMinimo() const;
     void MinimizarDFA();
     Gramatica ConvertToGrammar() const;
+    Gramatica ConvertToGrammarLeft() const;
 
     friend std::ostream& operator<<(std::ostream& out, const Automata& automata);
     friend std::istream& operator>>(std::istream& inp, Automata& automata);

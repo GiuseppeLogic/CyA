@@ -589,3 +589,65 @@ Gramatica Automata::ConvertToGrammar() const {
 }
 
 
+/**
+ * @brief Obtiene la gramática regular lineal por la izquierda equivalente al DFA.
+ * 
+ * Invierte la lógica de derivación: el nuevo axioma 'S' deriva directamente en 
+ * las variables asociadas a los estados de aceptación del autómata. Las transiciones 
+ * se invierten (B -> Aa) de modo que la cadena se construye de derecha a izquierda, 
+ * terminando la derivación con una producción vacía en el estado de arranque original.
+ * 
+ * @return Gramatica Objeto Gramatica configurado como lineal por la izquierda.
+ */
+Gramatica Automata::ConvertToGrammarLeft() const {
+    Gramatica gramatica;
+    
+    gramatica.alfabeto_ = this->alfabeto_; 
+    gramatica.simbolos_no_terminales.clear();
+    gramatica.producciones_.clear();
+
+    gramatica.lineal_izquierda = true; 
+
+    int cantidad_estados = this->getter_cantidad_estados();
+    int estado_arranque = this->getter_estado_arranque();
+
+    std::vector<std::string> nombre_no_terminales(cantidad_estados);
+    std::string alfabeto_latino{"ABCDEFGHIJKLMNOPQRTUVWXYZ"};
+    
+    int indice_letra = 0;
+    for (int i = 0; i < cantidad_estados; ++i) {
+        nombre_no_terminales[i] = std::string(1, alfabeto_latino[indice_letra++]);
+        gramatica.simbolos_no_terminales.emplace_back(nombre_no_terminales[i]);
+    }
+    
+    gramatica.simbolo_arranque_ = "S";
+    gramatica.simbolos_no_terminales.insert(gramatica.simbolos_no_terminales.begin(), "S");
+
+    // Producciones de cierre { q0 -> ε }
+    std::string no_terminal_arranque = nombre_no_terminales[estado_arranque];
+    gramatica.producciones_.insert({{no_terminal_arranque, "&"}, ""});
+
+    // Producciones invertidas { δ(q, a) = p  =>  p -> qa }
+    for (const auto& par_transicion : this->getter_funcion_transicion()) {
+        int estado_origen = par_transicion.first.first;
+        std::string simbolo = par_transicion.first.second;
+        int estado_destino = par_transicion.second;
+
+        std::string no_terminal_origen = nombre_no_terminales[estado_origen];
+        std::string no_terminal_destino = nombre_no_terminales[estado_destino];
+
+        gramatica.producciones_.insert({{no_terminal_destino, simbolo}, no_terminal_origen});
+    }
+
+    // Producciones de inicio { S -> F | F ∈ Estados de Aceptación }
+    for (int estado_final : this->getter_estado_aceptacion()) {
+        std::string no_terminal_final = nombre_no_terminales[estado_final];
+        
+        gramatica.producciones_.insert({{"S", ""}, no_terminal_final});
+    }
+    
+    return gramatica;
+}
+
+
+
