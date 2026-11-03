@@ -46,6 +46,7 @@ class Gramatica{
      
      friend std::ostream& operator<<(std::ostream& out, const Gramatica& gramatica);
      friend std::ofstream& operator<<(std::ofstream& out, const Gramatica& gramatica);
+     void VisionAlternativa(std::ofstream& out) const;
      friend class Automata;
 
   private:

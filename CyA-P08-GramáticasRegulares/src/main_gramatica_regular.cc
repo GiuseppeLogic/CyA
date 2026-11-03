@@ -20,13 +20,21 @@
 
 
 int main(int argc, char* argv[]) {
+    bool vision_alternativa{false};
 
     if (argc == 2 && std::string{argv[1]} == "--help") {
         MostrarAyuda();
         return 0;
     }
 
-    if (argc != 3) {
+    if (argc == 4 && std::string{argv[3]} == "alt"){
+        vision_alternativa = true;
+    }else if (argc == 4){
+        MostrarUso();
+        return 1;
+    }
+
+    if (argc != 3 && argc != 4) {
         MostrarUso();
         return 1;
     }
@@ -53,7 +61,11 @@ int main(int argc, char* argv[]) {
 
     Gramatica gramatica = automata.ConvertToGrammar();
     
-    out_gramatica << gramatica;
+    if (vision_alternativa){
+        gramatica.VisionAlternativa(out_gramatica);
+    }else{
+        out_gramatica << gramatica;
+    }
 
     return 0;
 }

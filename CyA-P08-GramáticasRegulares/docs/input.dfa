@@ -2,11 +2,10 @@
 // DFA que reconoce el lenguaje representado por la e x p r e s i n (a|b)*abb
 //
 ab
-5
+3
 0
-0 0 a 1 b 2
-1 0 a 1 b 3
-2 0 a 1 b 2
-3 0 a 1 b 4
-4 1 a 1 b 2
+0 0 a 0 b 1
+1 0 a 2 b 2
+2 1 a 2 b 2
+
 

@@ -78,7 +78,7 @@ std::ostream& operator<<(std::ostream& out, const std::pair<int,int>& par_estado
  * @brief Sobrecarga del operador de inserción (<<) para imprimir la gramática.
  * 
  * Muestra las reglas de producción agrupadas por cada símbolo no terminal 
- * separadas por '|' (ej. "S -> aS|bA"), coincidiendo con la notación formal[cite: 3].
+ * separadas por '|' (ej. "S -> aS|bA"), coincidiendo con la notación formal.
  * 
  * @param out Flujo de salida (ej. std::cout).
  * @param gramatica Objeto de tipo Gramatica a representar.
@@ -637,4 +637,59 @@ void Gramatica::EliminarSimbolosInutiles() {
 
     std::cout << "\n[+] Simplificación completada. Se eliminaron " 
               << inutiles.size() << " símbolos inútiles.\n";
+}
+
+
+/**
+ * @brief Muestra la gramática regular.
+ * 
+ * Se enseñan las reglas de producción agrupadas por cada símbolo no terminal 
+ * separadas por '|' (ej. "S -> aS|bA"), coincidiendo con la notación formal.
+ * 
+ * @param out Flujo de salida (ej. std::cout).
+ */
+void Gramatica::VisionAlternativa(std::ofstream& out) const{
+    out << alfabeto_.size() << "\n";
+    for (const std::string& simbolo_terminal : alfabeto_){
+        out << simbolo_terminal << "\n";
+    }
+    
+    out << simbolos_no_terminales.size() << "\n"; 
+    for (const std::string& simbolo_no_terminal : simbolos_no_terminales){
+        out << simbolo_no_terminal << "\n";
+    }
+    
+    out << simbolo_arranque_ << "\n"; 
+    
+    out << producciones_.size() << "\n"; 
+    
+    for (const std::string& no_terminal : simbolos_no_terminales) {
+        std::vector<std::string> lados_derechos;
+
+        for (const auto& produccion : producciones_) {
+            std::string origen = produccion.first.first;
+            std::string simbolo = produccion.first.second;
+            std::string destino = produccion.second;
+
+            if (origen == no_terminal) {
+                if (lineal_izquierda){
+                    lados_derechos.push_back(destino + simbolo);
+                } else {
+                    lados_derechos.push_back(simbolo + destino);
+                }
+            }
+        }
+
+        if (!lados_derechos.empty()) {
+            out << no_terminal << " -> ";
+            for (size_t i = 0; i < lados_derechos.size(); ++i) {
+                out << lados_derechos[i];
+                if (i < lados_derechos.size() - 1) {
+                    out << "|";
+                }
+            }
+            out << "\n";
+        }
+    }
+    
 }

@@ -1,22 +1,12 @@
 2
 a
 b
-5
+3
 S
 A
 B
-C
-D
 S
-11
-A -> aA
-A -> bC
-B -> aA
-B -> bB
-C -> aA
-C -> bD
-D -> &
-D -> aA
-D -> bB
-S -> aA
-S -> bB
+7
+S -> aS|bA
+A -> aB|bB
+B -> &|aB|bB
